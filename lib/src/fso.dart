@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 class FsoFile {
+  final bool debug = false;
   Reference ref;
   bool? uploadPending;
   XFile? xfile;
@@ -28,7 +29,7 @@ class FsoFile {
         uploadTask =
             ref.putData(await xfile!.readAsBytes());
       } else {
-        print('upload....');
+        if(debug)print('upload....');
         uploadTask = ref.putFile(File(xfile!.path));
       }
     }
@@ -39,16 +40,15 @@ class FsoFile {
     var storageRef = FirebaseStorage.instance.ref(rootPath);
     if (kIsWeb) {
     } else {
-      var filename = path.basename(xfile!.path);
-      Reference ref = storageRef.child(filename);
       Directory appDocDir = await getApplicationDocumentsDirectory();
-      File downloadToFile = File('${appDocDir.path}/$filename');
+      File downloadToFile = File(("/" + ref.fullPath).replaceFirst(rootPath!, appDocDir.path));
       await ref.writeToFile(downloadToFile);
     }
   }
 }
 
 class Fso {
+  final bool debug = false;
   final storageRef = FirebaseStorage.instance.ref();
 
   String rootPath;
@@ -94,9 +94,9 @@ class Fso {
           //check if file is not pending
           //check if file is not in remote
           xfile = XFile(e.path);
-          if (kDebugMode) print(e.path);
+          if (debug) print(e.path);
           filename = path.basename(xfile.path);
-          if (kDebugMode) print(filename);
+          if (debug) print(filename);
           bool found = isFileExistInRemote(filename, allFiles);
           if (!found) {
             var pending = storageRef.child(rootPath).child("$filename");
@@ -120,5 +120,9 @@ class Fso {
       }
     }
     return found;
+  }
+
+  Future<String> getDownloadURL(String filepath) async {
+    return await child(rootPath +'/'+ path.basename(filepath)).getDownloadURL();
   }
 }
